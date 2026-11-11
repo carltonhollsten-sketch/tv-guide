@@ -19,7 +19,7 @@ ET_TZ = ZoneInfo("America/New_York")
 NOW = datetime.now(timezone.utc)
 DAYS = 7
 API = "https://site.api.espn.com/apis/site/v2/sports/"
-DUR = {"NFL": 3.5, "NBA": 2.7, "NHL": 2.7, "EPL": 2.0, "AFL": 2.7, "F1": 2.0, "Cricket": 8}
+DUR = {"NFL": 3.5, "NBA": 2.7, "NHL": 2.7, "EPL": 2.0, "AFL": 2.7, "F1": 2.0, "Cricket": 7}
 USUAL = {
     "NFL": ["NFL Network", "NFL RedZone", "ESPN", "ESPN USA", "ESPN 2", "Fox Sports 1", "CBS", "ESPN 1"],
     "NBA": ["ESPN", "ESPN USA", "ESPN 2", "ESPN 1", "Fox Sports 1"],
@@ -115,7 +115,12 @@ for m in csv.DictReader(open("epg_mapping.csv", encoding="utf-8-sig")):
         pk_name[m["PkId"]] = c
 have = {}
 for nm, cat in clean.values():
-    have.setdefault(nm.lower(), []).append(f"{cat} › {nm}")
+    have.setdefault(nm.lower(), []).append((cat, nm))
+
+
+def lab(cat, nm):
+    """Channel as shown in Sparkle; the category is only added where the name alone is ambiguous (e.g. beIN Sports 1 exists in two)."""
+    return f"{cat} › {nm}" if len(have.get(nm.lower(), [])) > 1 or cat == "US Locals" else nm
 want_ids = set(pk_name)
 progs = {}
 srcxml = Path("src/picked_epg.xml") if Path("src/picked_epg.xml").exists() else Path("picked_epg.xml")
@@ -141,13 +146,14 @@ for (sport, _), e in sorted(events.items(), key=lambda kv: kv[1]["start"]):
         name, cat = pk_name[cid]
         for st, text in lst:
             if abs((st - e["start"]).total_seconds()) <= 2700 and any(t in text for t in e["teams"]):
-                label = f"{cat} › {name}"
+                label = lab(cat, name)
                 if label not in confirmed:
                     confirmed.append(label)
                 break
     may = []
     for nm in USUAL.get(sport, []):
-        for label in have.get(nm.lower(), []):
+        for cat, name in have.get(nm.lower(), []):
+            label = lab(cat, name)
             if label not in confirmed and label not in may:
                 may.append(label)
     out.append({"sport": sport, "league": e["league"], "title": e["title"], "start": e["start"].isoformat(),
