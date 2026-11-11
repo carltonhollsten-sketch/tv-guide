@@ -19,7 +19,8 @@ ET_TZ = ZoneInfo("America/New_York")
 NOW = datetime.now(timezone.utc)
 DAYS = 7
 API = "https://site.api.espn.com/apis/site/v2/sports/"
-DUR = {"NFL": 3.5, "NBA": 2.7, "NHL": 2.7, "EPL": 2.0, "AFL": 2.7, "F1": 2.0, "Cricket": 7}
+DUR = {"NFL": 3.5, "NBA": 2.7, "NHL": 2.7, "EPL": 2.0, "AFL": 2.7, "F1": 2.0, "Cricket": 7, "Golf": 9, "Tennis": 10}
+WIN = {"Golf": 12 * 3600, "Tennis": 12 * 3600}  # all-day events: a guide listing counts if it starts within this many seconds of the day's start
 USUAL = {
     "NFL": ["NFL Network", "NFL RedZone", "ESPN", "ESPN USA", "ESPN 2", "Fox Sports 1", "CBS", "ESPN 1"],
     "NBA": ["ESPN", "ESPN USA", "ESPN 2", "ESPN 1", "Fox Sports 1"],
@@ -28,6 +29,8 @@ USUAL = {
             "Fox Soccer Plus", "NBC Sports Network"],
     "F1": ["Sky Sports F1", "Formula 1 Channel (FM1TV)", "ESPN 2", "ESPN", "Fox Sports 503"],
     "AFL": ["Fox Sports 502", "Fox Sports 503", "Fox Sports 501", "7mate Melbourne", "Channel7 Sydney", "7Now"],
+    "Golf": ["Golf Channel", "NBC Golf", "Sky Sports Golf", "ESPN", "ESPN 2", "Fox Sports 1", "CBS", "Fox Sports 503"],
+    "Tennis": ["Sky Sports Tennis", "ESPN", "ESPN 2", "ESPN 1", "Fox Sports 502", "Eurosport 1", "Eurosport 2"],
     "Cricket": ["Fox Cricket (AU)", "Willow Cricket (US)", "Willow Cricket Extra (US)", "Sky Sports Cricket (UK)", "Star Sports 1 English",
                 "Sky Sport 1 (NZ)"],
 }
@@ -90,14 +93,39 @@ for sport, path in LEAGUES.items():
             add(sport, ev["id"], f'{away["displayName"]} at {home["displayName"]}' if sport != "EPL" else f'{home["displayName"]} v {away["displayName"]}',
                 parse(ev["date"]), {"NFL": "NFL", "NBA": "NBA", "NHL": "NHL", "EPL": "Premier League", "AFL": "AFL"}[sport], keys)
 
+# golf majors and the tennis slams: ESPN lists the whole tournament as one event, so it becomes one entry per day
+MAJORS = {
+    "Golf": ("golf/pga", r"masters|pga championship|u\.?s\.? open|open championship", ["masters", "pga championship", "u.s. open", "us open", "open championship"]),
+    "Tennis": ("tennis/atp", r"australian open|french open|roland garros|u\.?s\.? open|wimbledon",
+               ["australian open", "french open", "roland garros", "us open", "u.s. open", "wimbledon"]),
+}
+for sport, (path, pat, keys) in MAJORS.items():
+    found = {}  # the default scoreboard only shows the current event, so ask for every day of the window to catch one that starts later
+    for d in range(0, DAYS + 1):
+        try:
+            data = get(f"{API}{path}/scoreboard?dates={(NOW + timedelta(days=d)).strftime('%Y%m%d')}")
+        except Exception as e:
+            print(f"  {sport}: {type(e).__name__}")
+            continue
+        for ev in data.get("events", []):
+            found[ev["id"]] = ev
+    for ev in found.values():
+        if not re.search(pat, ev.get("name", ""), re.I) or re.search(r"women|ladies|senior|champions", ev["name"], re.I):
+            continue
+        start = parse(ev["date"])
+        end = parse(ev["endDate"]) if ev.get("endDate") else start
+        for d in range((end.date() - start.date()).days + 1):
+            add(sport, f'{ev["id"]}-{d}', f'{ev["name"]} - Day {d + 1}', start + timedelta(days=d), ev["name"], keys)
+
 try:
     hdr = get("https://site.web.api.espn.com/apis/v2/scoreboard/header?sport=cricket&lang=en&region=us")
     for lg in hdr["sports"][0]["leagues"]:
         name = lg["name"]
         for ev in lg.get("events", []):
             blob = f'{name} {ev.get("name", "")}'
-            if re.search(r"Australia|Sheffield|Big Bash|BBL|Ashes|Marsh|World Cup|T20 World|ICC", blob, re.I):
-                teams = [w for w in re.split(r"\s+v\s+|\s+vs\s+", ev["name"]) if w]
+            teams = [w.strip() for w in re.split(r"\s+v\s+|\s+vs\s+", ev["name"]) if w]
+            # only the Australian men's national team: "Australia" itself, not Women, A, Under-19 or the domestic sides
+            if any(t.lower() == "australia" for t in teams) and not re.search(r"women|\bA\b|under|u19|u-19", blob, re.I):
                 add("Cricket", ev["id"], ev["name"], parse(ev["date"]), re.sub(r"\s*20\d\d(/\d\d)?$", "", name), [t.lower() for t in teams])
 except Exception as e:
     print("  cricket:", type(e).__name__)
@@ -145,7 +173,7 @@ for (sport, _), e in sorted(events.items(), key=lambda kv: kv[1]["start"]):
     for cid, lst in progs.items():
         name, cat = pk_name[cid]
         for st, text in lst:
-            if abs((st - e["start"]).total_seconds()) <= 2700 and any(t in text for t in e["teams"]):
+            if abs((st - e["start"]).total_seconds()) <= WIN.get(sport, 2700) and any(t in text for t in e["teams"]):
                 label = lab(cat, name)
                 if label not in confirmed:
                     confirmed.append(label)
@@ -167,7 +195,7 @@ def fmt(d):
     return d.astimezone(ET_TZ).strftime("%I:%M %p").lstrip("0")
 
 
-COL = {"NFL": "#4f8cff", "NBA": "#2ecc71", "NHL": "#9aa7b5", "EPL": "#b57bff", "AFL": "#ff9f43", "F1": "#ff5c5c", "Cricket": "#ffd43b"}
+COL = {"NFL": "#4f8cff", "NBA": "#2ecc71", "NHL": "#9aa7b5", "EPL": "#b57bff", "AFL": "#ff9f43", "F1": "#ff5c5c", "Cricket": "#ffd43b", "Golf": "#3fa66b", "Tennis": "#17a2b8"}
 rows = []
 for e in out:
     st = datetime.fromisoformat(e["start"])
