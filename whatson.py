@@ -20,6 +20,7 @@ NOW = datetime.now(timezone.utc)
 DAYS = 7
 API = "https://site.api.espn.com/apis/site/v2/sports/"
 DUR = {"NFL": 3.5, "NBA": 2.7, "NHL": 2.7, "EPL": 2.0, "AFL": 2.7, "F1": 2.0, "Cricket": 7, "Golf": 9, "Tennis": 10}
+ALERT_SPORTS = {"NBA", "NHL", "F1", "Cricket", "AFL", "Golf", "Tennis"}  # the TV pops a reminder before these start (NFL/EPL have too many games at once)
 WIN = {"Golf": 12 * 3600, "Tennis": 12 * 3600}  # all-day events: a guide listing counts if it starts within this many seconds of the day's start
 USUAL = {
     "NFL": ["NFL Network", "NFL RedZone", "ESPN", "ESPN USA", "ESPN 2", "Fox Sports 1", "CBS", "ESPN 1"],
@@ -185,7 +186,7 @@ for (sport, _), e in sorted(events.items(), key=lambda kv: kv[1]["start"]):
             if label not in confirmed and label not in may:
                 may.append(label)
     out.append({"sport": sport, "league": e["league"], "title": e["title"], "start": e["start"].isoformat(),
-                "mins": int(DUR[sport] * 60), "confirmed": confirmed[:4], "may": may[:5]})
+                "mins": int(DUR[sport] * 60), "alert": sport in ALERT_SPORTS, "confirmed": confirmed[:4], "may": may[:5]})
 
 Path("site").mkdir(exist_ok=True)
 Path("site/whatson.json").write_text(json.dumps({"updated": NOW.isoformat(), "events": out}, ensure_ascii=False), encoding="utf-8")
