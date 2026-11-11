@@ -105,3 +105,16 @@ if not m or int(m.group(2)) < 50:
 shutil.copy(SRC / "picked_epg.xml", SITE / "picked_epg.xml")
 (SITE / "index.html").write_text("<!doctype html><title>guide</title><a href='picked_epg.xml'>picked_epg.xml</a>")
 print("built", (SITE / "picked_epg.xml").stat().st_size // 1024, "KB")
+
+# "What's on" page: needs the clean channel names (clean_names.py reads picked_channels.csv, which only exists on this runner)
+try:
+    Path("picked_channels.csv").write_text(os.environ["PICKED_CHANNELS"].lstrip("﻿"), encoding="utf-8")
+    for script in ("clean_names.py", "whatson.py"):
+        r = subprocess.run([sys.executable, "-X", "utf8", script], capture_output=True, text=True)
+        print(r.stdout[-600:] if script == "whatson.py" else "")
+        if r.returncode:
+            raise RuntimeError(r.stderr[-800:])
+except Exception as e:  # never block the guide because of this page
+    print("whatson skipped:", e)
+finally:
+    Path("picked_channels.csv").unlink(missing_ok=True)
