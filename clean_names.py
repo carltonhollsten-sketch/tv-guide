@@ -21,7 +21,10 @@ NAME_OVERRIDE = {"TV: BOSTON, MA WGBH PBS 2 A3 HD BOSTON cty RAW": "PBS 2 (WGBH)
                  "US: CW 56 HD [BOSTON]": "CW 56 (WLVI) Boston",
                  "US: 7NEWS BOSTON (WHDH) HD": "7News (WHDH) Boston",
                  "US: TELEMUNDO (WNEU) BOSTON HD": "Telemundo (WNEU) Boston",
-                 "US: CBS (WSBK) BOSTON HD": "CBS Boston (alt feed)"}
+                 "US: CBS (WSBK) BOSTON HD": "CBS Boston (alt feed)",
+                 "US: NBC (WBTS) BOSTON, MA (D) RAW": "NBC 10 (WBTS) Boston (alt D)",
+                 "TV: BOSTON, MA WBTS-CD NBC 10 A3 HD BOSTON cty RAW": "NBC 10 (WBTS) Boston (alt C)",
+                 "US: NBC SPORTS BOSTON (D) RAW": "NBC Sports Boston (alt D)"}
 SPECIAL = {"BEIN": "beIN", "9NOW": "9Now", "9GO!": "9Go!", "9GEM": "9Gem", "9LIFE": "9Life", "9RUSH": "9Rush", "7FLIX": "7flix",
            "7MATE": "7mate", "7TWO": "7two", "7BRAVO": "7Bravo", "7NOW": "7Now", "REDBULL": "Red Bull", "FOX": "Fox",
            "PREMIER": "Premier", "EUROSPORT": "Eurosport", "SUPERSPORTS": "SuperSport", "YOUTUBE": "YouTube", "REDZONE": "RedZone"}
