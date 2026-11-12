@@ -15,7 +15,13 @@ ACRO = {"ESPN", "NFL", "NHL", "TNT", "UFC", "WWE", "DAZN", "NBC", "CBS", "ABC", 
         "FM1TV", "MUTV", "LFC", "NESN", "ION", "TV", "USA", "UK", "AU", "NZ", "SG", "CRB", "SEC", "PL", "HSN", "LOL!", "SNL",
         "MASSN", "PBTV", "FITE", "FUBO", "GINX", "BTV", "KABC", "KCBS", "KCNC", "KDFW", "KDVR", "KNBC", "KTTV", "KTVT", "KUSA",
         "KXAS", "WBBM", "WBTS", "WCBS", "WCVB", "WFAA", "WFLD", "WFXT", "WLS", "WMAQ", "WNBC", "WNYW", "WSBK", "NSW", "VIC",
-        "QLD", "SA", "WA", "NITV", "LX", "LA", "II", "NZ"}
+        "QLD", "SA", "WA", "NITV", "LX", "LA", "II", "NZ", "WBZ", "WHDH", "WNEU", "WGBH", "CW", "PBS"}
+# Provider names that are messy or mislabelled -> the name Sparkle should show
+NAME_OVERRIDE = {"TV: BOSTON, MA WGBH PBS 2 A3 HD BOSTON cty RAW": "PBS 2 (WGBH) Boston",
+                 "US: CW 56 HD [BOSTON]": "CW 56 (WLVI) Boston",
+                 "US: 7NEWS BOSTON (WHDH) HD": "7News (WHDH) Boston",
+                 "US: TELEMUNDO (WNEU) BOSTON HD": "Telemundo (WNEU) Boston",
+                 "US: CBS (WSBK) BOSTON HD": "CBS Boston (alt feed)"}
 SPECIAL = {"BEIN": "beIN", "9NOW": "9Now", "9GO!": "9Go!", "9GEM": "9Gem", "9LIFE": "9Life", "9RUSH": "9Rush", "7FLIX": "7flix",
            "7MATE": "7mate", "7TWO": "7two", "7BRAVO": "7Bravo", "7NOW": "7Now", "REDBULL": "Red Bull", "FOX": "Fox",
            "PREMIER": "Premier", "EUROSPORT": "Eurosport", "SUPERSPORTS": "SuperSport", "YOUTUBE": "YouTube", "REDZONE": "RedZone"}
@@ -86,6 +92,8 @@ def new_category(cat, ch, name):
         return "US Peacock"
     if re.search(r"^US\| (ABC|CBS|FOX|NBC)", c):
         return "US Sports" if re.search(r"SPORTS NETWORK|FOX SPORTS|NBC GOLF", n) else "US Locals"
+    if ch in NAME_OVERRIDE:
+        return "US Locals"
     if "PEACOCK RAW" in c:
         return "US Sports" if re.search(r"NFL|NBC SPORTS|PREMIER LEAGUE|WWE|TEAM USA", n) else "US Entertainment"
     if c.startswith("US|") and "TENNIS" in n and "SKY" not in n:
@@ -116,6 +124,7 @@ recs = []
 for r in rows:
     cat, ch = r["Category"], r["Channel"]
     name, flags, pre = core(ch)
+    name = NAME_OVERRIDE.get(ch, name)
     ncat = new_category(cat, ch, name)
     # keep the country tag only where the category doesn't already say it
     if ncat == "Cricket" and pre in ("UK", "AU", "US", "NZ", "SG", "CRB") and not re.search(r"\((UK|AU|US|NZ|SG|CRB)\)$", name):
